@@ -195,6 +195,8 @@ set(GAME_SOURCES
   y/y.h
 )
 
+find_package(JlCxx REQUIRED)
+
 if (${OPEN_SPIEL_BUILD_WITH_HANABI})
   set(GAME_SOURCES ${GAME_SOURCES} hanabi/hanabi.cc hanabi/hanabi.h)
 endif()
@@ -206,6 +208,7 @@ endif()
 add_library (games OBJECT ${GAME_SOURCES})
 
 target_include_directories (games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries (games PRIVATE JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
 if (${OPEN_SPIEL_BUILD_WITH_HANABI})
   add_subdirectory(hanabi)
@@ -323,6 +326,7 @@ add_test(catch_test catch_test)
 
 add_executable(checkers_test checkers/checkers_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
+target_link_libraries (checkers_test PRIVATE JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 add_test(checkers_test checkers_test)
 
 add_executable(chess_test chess/chess_test.cc ${OPEN_SPIEL_OBJECTS}

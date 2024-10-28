@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "open_spiel/spiel.h"
+#include "jlcxx/jlcxx.hpp"
 
 namespace open_spiel {
 namespace checkers {
@@ -118,7 +119,8 @@ class CheckersState : public State {
   }
   void UndoAction(Player player, Action action) override;
   bool InBounds(int row, int column) const;
-  std::string ToBoardString() const;
+  int GetJuliaState(jlcxx::ArrayRef<uint8_t> buffer) const;
+  void SetJuliaState(jlcxx::ArrayRef<uint8_t> buffer);
   void SetCustomBoard(const std::string board_string);
   CellState CrownStateIfLastRowReached(int row, CellState state);
   CheckersAction SpielActionToCheckersAction(Action action) const;

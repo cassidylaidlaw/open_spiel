@@ -795,10 +795,10 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                    include_full_observations, seed, max_unroll_length);
              });
 
-  mod.add_type<open_spiel::checkers::CheckersState>("CheckersState")
-      .method("to_board_string",
-              &open_spiel::checkers::CheckersState::ToBoardString)
-      .method("set_custom_board",
-              &open_spiel::checkers::CheckersState::SetCustomBoard);
+  mod.add_type<open_spiel::checkers::CheckersState>("CheckersState", jlcxx::julia_base_type<open_spiel::State>())
+      .method("get_julia_state",
+              &open_spiel::checkers::CheckersState::GetJuliaState)
+      .method("set_julia_state",
+              &open_spiel::checkers::CheckersState::SetJuliaState);
 }  // NOLINT(readability/fn_size)
 

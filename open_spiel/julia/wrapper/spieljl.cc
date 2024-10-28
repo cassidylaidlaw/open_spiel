@@ -26,6 +26,7 @@
 #include "open_spiel/algorithms/tabular_exploitability.h"
 #include "open_spiel/algorithms/trajectories.h"
 #include "open_spiel/game_transforms/turn_based_simultaneous_game.h"
+#include "open_spiel/games/checkers/checkers.h"
 #include "open_spiel/matrix_game.h"
 #include "open_spiel/normal_form_game.h"
 #include "open_spiel/policy.h"
@@ -793,5 +794,11 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                    game, policies, state_to_index, batch_size,
                    include_full_observations, seed, max_unroll_length);
              });
+
+  mod.add_type<open_spiel::checkers::CheckersState>("CheckersState")
+      .method("to_board_string",
+              &open_spiel::checkers::CheckersState::ToBoardString)
+      .method("set_custom_board",
+              &open_spiel::checkers::CheckersState::SetCustomBoard);
 }  // NOLINT(readability/fn_size)
 

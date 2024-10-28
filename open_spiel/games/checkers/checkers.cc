@@ -29,8 +29,6 @@ namespace open_spiel {
 namespace checkers {
 namespace {
 
-// Number of rows with pieces for each player
-constexpr int kNumRowsWithPieces = 3;
 // Types of moves: normal & capture
 constexpr int kNumMoveType = 2;
 // Number of unique directions each piece can take.
@@ -59,7 +57,8 @@ const GameType kGameType{/*short_name=*/"checkers",
                          /*provides_observation_tensor=*/true,
                          /*parameter_specification=*/
                          {{"rows", GameParameter(kDefaultRows)},
-                          {"columns", GameParameter(kDefaultColumns)}}};
+                          {"columns", GameParameter(kDefaultColumns)},
+                          {"rows_with_pieces", GameParameter(kDefaultRowsWithPieces)}}};
 
 std::shared_ptr<const Game> Factory(const GameParameters& params) {
   return std::shared_ptr<const Game>(new CheckersGame(params));
@@ -186,7 +185,7 @@ std::ostream& operator<<(std::ostream& stream, const CellState& state) {
 }
 
 CheckersState::CheckersState(std::shared_ptr<const Game> game, int rows,
-                             int columns)
+                             int columns, int rows_with_pieces)
     : State(game), rows_(rows), columns_(columns) {
   SPIEL_CHECK_GE(rows_, 1);
   SPIEL_CHECK_GE(columns_, 1);
@@ -200,9 +199,9 @@ CheckersState::CheckersState(std::shared_ptr<const Game> game, int rows,
   for (int row = rows_ - 1; row >= 0; row--) {
     for (int column = 0; column < columns_; column++) {
       if ((row + column) % 2 == 1) {
-        if (row >= 0 && row < kNumRowsWithPieces) {
+        if (row >= 0 && row < rows_with_pieces) {
           SetBoard(row, column, CellState::kBlack);
-        } else if (row >= (rows_ - kNumRowsWithPieces)) {
+        } else if (row >= (rows_ - rows_with_pieces)) {
           SetBoard(row, column, CellState::kWhite);
         }
       }
@@ -220,20 +219,63 @@ CellState CheckersState::CrownStateIfLastRowReached(int row, CellState state) {
   return state;
 }
 
+
+std::string CheckersState::ToBoardString() const {
+  std::string result;
+  result.reserve(rows_ * columns_ + 3);
+
+  result += static_cast<char>('0' + current_player_);
+
+  if (multiple_jump_piece_ == kNoMultipleJumpsPossible) {
+    absl::StrAppend(&result, "  ");
+  } else {
+    int multiple_jump_piece_row = multiple_jump_piece_ / rows_;
+    int multiple_jump_piece_column = multiple_jump_piece_ % rows_;
+    absl::StrAppend(&result, RowLabel(rows_, multiple_jump_piece_row));
+    absl::StrAppend(&result, ColumnLabel(multiple_jump_piece_column));
+  }
+
+  for (int r = 0; r < rows_; r++) {
+    for (int c = 0; c < columns_; c++) {
+      absl::StrAppend(&result, StateToString(BoardAt(r, c)));
+    }
+  }
+
+  return result;
+}
+
 void CheckersState::SetCustomBoard(const std::string board_string) {
-  SPIEL_CHECK_EQ(rows_ * columns_, board_string.length() - 1);
+  SPIEL_CHECK_EQ(rows_ * columns_, board_string.length() - 3);
   current_player_ = board_string[0] - '0';
   SPIEL_CHECK_GE(current_player_, 0);
   SPIEL_CHECK_LE(current_player_, 1);
+
+  multiple_jump_piece_ = kNoMultipleJumpsPossible;
+  if (board_string[1] != ' ') {
+    int row = rows_ - (board_string[1] - '0');
+    int column = board_string[2] - 'a';
+    multiple_jump_piece_ = row * rows_ + column;
+    SPIEL_CHECK_GE(row, 0);
+    SPIEL_CHECK_LT(row, rows_);
+    SPIEL_CHECK_GE(column, 0);
+    SPIEL_CHECK_LT(column, columns_);
+  }
+
   // Create the board from the board string. The characters 'o', '8' are White
   // (first player) & '+', '*' are Black (second player), and the character '.'
   // is an Empty cell. Population goes from top left to bottom right.
   for (int row = 0; row < rows_; row++) {
     for (int column = 0; column < columns_; column++) {
-      char state_character = board_string[1 + row * columns_ + column];
+      char state_character = board_string[3 + row * columns_ + column];
       CellState state = StringToState(state_character);
       SetBoard(row, column, state);
     }
+  }
+
+  if (LegalActions().empty()) {
+    outcome_ = 1 - current_player_;
+  } else {
+    outcome_ = kInvalidPlayer;
   }
 }
 
@@ -256,7 +298,7 @@ void CheckersState::DoApplyAction(Action action) {
 
   int end_row, end_column;
   multiple_jump_piece_ = kNoMultipleJumpsPossible;
-  moves_without_capture_++;
+  // moves_without_capture_++;
 
   switch (checkers_action.move_type) {
     case MoveType::kNormal:
@@ -564,7 +606,8 @@ void CheckersState::UndoAction(Player player, Action action) {
 CheckersGame::CheckersGame(const GameParameters& params)
     : Game(kGameType, params),
       rows_(ParameterValue<int>("rows")),
-      columns_(ParameterValue<int>("columns")) {}
+      columns_(ParameterValue<int>("columns")),
+      rows_with_pieces_(ParameterValue<int>("rows_with_pieces")) {}
 
 int CheckersGame::NumDistinctActions() const {
   return rows_ * columns_ * kNumDirections * kNumMoveType;

@@ -42,6 +42,7 @@ namespace checkers {
 constexpr int kNumPlayers = 2;
 constexpr int kDefaultRows = 8;
 constexpr int kDefaultColumns = 8;
+constexpr int kDefaultRowsWithPieces = 3;
 constexpr int kMaxMovesWithoutCapture = 40;
 // Empty, White, WhiteKing, Black and BlackKing.
 constexpr int kCellStates = 5;
@@ -100,7 +101,7 @@ struct TurnHistoryInfo {
 class CheckersState : public State {
  public:
   explicit CheckersState(std::shared_ptr<const Game> game, int rows,
-                         int columns);
+                         int columns, int rows_with_pieces);
   Player CurrentPlayer() const override {
     return IsTerminal() ? kTerminalPlayerId : current_player_;
   }
@@ -117,6 +118,7 @@ class CheckersState : public State {
   }
   void UndoAction(Player player, Action action) override;
   bool InBounds(int row, int column) const;
+  std::string ToBoardString() const;
   void SetCustomBoard(const std::string board_string);
   CellState CrownStateIfLastRowReached(int row, CellState state);
   CheckersAction SpielActionToCheckersAction(Action action) const;
@@ -156,7 +158,7 @@ class CheckersGame : public Game {
   int NumDistinctActions() const override;
   std::unique_ptr<State> NewInitialState() const override {
     return absl::make_unique<CheckersState>(shared_from_this(), rows_,
-                                            columns_);
+                                            columns_, rows_with_pieces_);
   }
   int NumPlayers() const override { return kNumPlayers; }
   double MinUtility() const override { return -1; }
@@ -171,6 +173,7 @@ class CheckersGame : public Game {
  private:
   int rows_;
   int columns_;
+  int rows_with_pieces_;
 };
 
 std::ostream& operator<<(std::ostream& stream, const CellState& state);

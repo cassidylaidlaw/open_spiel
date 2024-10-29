@@ -236,88 +236,6 @@ CellState CheckersState::CrownStateIfLastRowReached(int row, CellState state) {
   return state;
 }
 
-
-int CheckersState::GetJuliaState(jlcxx::ArrayRef<uint8_t> buffer) const {
-  buffer[0] = '0' + current_player_;
-  if (multiple_jump_piece_ == kNoMultipleJumpsPossible) {
-    buffer[1] = ' ';
-    buffer[2] = ' ';
-  } else {
-    int multiple_jump_piece_row = multiple_jump_piece_ / rows_;
-    int multiple_jump_piece_column = multiple_jump_piece_ % rows_;
-    buffer[1] = '0' + rows_ - multiple_jump_piece_row;
-    buffer[2] = 'a' + multiple_jump_piece_column;
-  }
-
-  for (int r = 0; r < rows_; r++) {
-    for (int c = 0; c < columns_; c++) {
-      buffer[3 + r * columns_ + c] = StateToChar(BoardAt(r, c));
-    }
-  }
-
-  return 3 + rows_ * columns_;
-}
-
-void CheckersState::SetJuliaState(jlcxx::ArrayRef<uint8_t> buffer) {
-  current_player_ = buffer[0] - '0';
-  SPIEL_CHECK_GE(current_player_, 0);
-  SPIEL_CHECK_LE(current_player_, 1);
-
-  multiple_jump_piece_ = kNoMultipleJumpsPossible;
-  if (buffer[1] != ' ') {
-    int row = rows_ - (buffer[1] - '0');
-    int column = buffer[2] - 'a';
-    multiple_jump_piece_ = row * rows_ + column;
-    SPIEL_CHECK_GE(row, 0);
-    SPIEL_CHECK_LT(row, rows_);
-    SPIEL_CHECK_GE(column, 0);
-    SPIEL_CHECK_LT(column, columns_);
-  }
-
-  // Create the board from the board string. The characters 'o', '8' are White
-  // (first player) & '+', '*' are Black (second player), and the character '.'
-  // is an Empty cell. Population goes from top left to bottom right.
-  for (int row = 0; row < rows_; row++) {
-    for (int column = 0; column < columns_; column++) {
-      char state_character = buffer[3 + row * columns_ + column];
-      CellState state = StringToState(state_character);
-      SetBoard(row, column, state);
-    }
-  }
-
-  if (LegalActions().empty()) {
-    outcome_ = 1 - current_player_;
-  } else {
-    outcome_ = kInvalidPlayer;
-  }
-}
-
-int CheckersState::GetShapingPotential() const {
-  int potential = 0;
-  for (int row = 0; row < rows_; row++) {
-    for (int column = 0; column < columns_; column++) {
-      CellState state = BoardAt(row, column);
-      switch (state) {
-        case CellState::kWhite:
-          potential += 1;
-          break;
-        case CellState::kBlack:
-          potential -= 1;
-          break;
-        case CellState::kWhiteKing:
-          potential += 2;
-          break;
-        case CellState::kBlackKing:
-          potential -= 2;
-          break;
-        default:
-          break;
-      }
-    }
-  }
-  return potential;
-}
-
 void CheckersState::SetCustomBoard(const std::string board_string) {
   SPIEL_CHECK_EQ(rows_ * columns_, board_string.length() - 1);
   current_player_ = board_string[0] - '0';
@@ -657,6 +575,87 @@ void CheckersState::UndoAction(Player player, Action action) {
   }
   turn_history_info_.pop_back();
   history_.pop_back();
+}
+
+int CheckersState::SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const {
+  buffer[0] = '0' + current_player_;
+  if (multiple_jump_piece_ == kNoMultipleJumpsPossible) {
+    buffer[1] = ' ';
+    buffer[2] = ' ';
+  } else {
+    int multiple_jump_piece_row = multiple_jump_piece_ / rows_;
+    int multiple_jump_piece_column = multiple_jump_piece_ % rows_;
+    buffer[1] = '0' + rows_ - multiple_jump_piece_row;
+    buffer[2] = 'a' + multiple_jump_piece_column;
+  }
+
+  for (int r = 0; r < rows_; r++) {
+    for (int c = 0; c < columns_; c++) {
+      buffer[3 + r * columns_ + c] = StateToChar(BoardAt(r, c));
+    }
+  }
+
+  return 3 + rows_ * columns_;
+}
+
+void CheckersState::DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) {
+  current_player_ = buffer[0] - '0';
+  SPIEL_CHECK_GE(current_player_, 0);
+  SPIEL_CHECK_LE(current_player_, 1);
+
+  multiple_jump_piece_ = kNoMultipleJumpsPossible;
+  if (buffer[1] != ' ') {
+    int row = rows_ - (buffer[1] - '0');
+    int column = buffer[2] - 'a';
+    multiple_jump_piece_ = row * rows_ + column;
+    SPIEL_CHECK_GE(row, 0);
+    SPIEL_CHECK_LT(row, rows_);
+    SPIEL_CHECK_GE(column, 0);
+    SPIEL_CHECK_LT(column, columns_);
+  }
+
+  // Create the board from the board string. The characters 'o', '8' are White
+  // (first player) & '+', '*' are Black (second player), and the character '.'
+  // is an Empty cell. Population goes from top left to bottom right.
+  for (int row = 0; row < rows_; row++) {
+    for (int column = 0; column < columns_; column++) {
+      char state_character = buffer[3 + row * columns_ + column];
+      CellState state = StringToState(state_character);
+      SetBoard(row, column, state);
+    }
+  }
+
+  if (LegalActions().empty()) {
+    outcome_ = 1 - current_player_;
+  } else {
+    outcome_ = kInvalidPlayer;
+  }
+}
+
+float CheckersState::GetShapingPotential() const {
+  float potential = 0;
+  for (int row = 0; row < rows_; row++) {
+    for (int column = 0; column < columns_; column++) {
+      CellState state = BoardAt(row, column);
+      switch (state) {
+        case CellState::kWhite:
+          potential += 1;
+          break;
+        case CellState::kBlack:
+          potential -= 1;
+          break;
+        case CellState::kWhiteKing:
+          potential += 2;
+          break;
+        case CellState::kBlackKing:
+          potential -= 2;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  return potential;
 }
 
 CheckersGame::CheckersGame(const GameParameters& params)

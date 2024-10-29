@@ -34,8 +34,9 @@
 #include <string>
 #include <vector>
 
-#include "open_spiel/spiel.h"
 #include "jlcxx/jlcxx.hpp"
+
+#include "open_spiel/spiel.h"
 
 namespace open_spiel {
 namespace checkers {
@@ -119,9 +120,6 @@ class CheckersState : public State {
   }
   void UndoAction(Player player, Action action) override;
   bool InBounds(int row, int column) const;
-  int GetJuliaState(jlcxx::ArrayRef<uint8_t> buffer) const;
-  void SetJuliaState(jlcxx::ArrayRef<uint8_t> buffer);
-  int GetShapingPotential() const;
   void SetCustomBoard(const std::string board_string);
   CellState CrownStateIfLastRowReached(int row, CellState state);
   CheckersAction SpielActionToCheckersAction(Action action) const;
@@ -137,6 +135,10 @@ class CheckersState : public State {
   int GetRow() const { return rows_; }
   int GetCollumn() const { return columns_; }
   int GetCellState() const { return kCellStates; }
+
+  int SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const override;
+  void DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) override;
+  float GetShapingPotential() const override;
 
  protected:
   void DoApplyAction(Action action) override;

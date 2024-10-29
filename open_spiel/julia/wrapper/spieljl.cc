@@ -367,7 +367,13 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
       .method("update_distribution",
               [](open_spiel::State& s, std::vector<double> distribution) {
                 return s.UpdateDistribution(distribution);
-              });
+              })
+      .method("serialize_to_julia",
+              &open_spiel::State::SerializeToJulia)
+      .method("deserialize_from_julia",
+              &open_spiel::State::DeserializeFromJulia)
+      .method("get_shaping_potential",
+              &open_spiel::State::GetShapingPotential);
 
   mod.add_type<open_spiel::Game>("Game")
       .method("num_distinct_actions", &open_spiel::Game::NumDistinctActions)
@@ -795,12 +801,5 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                    include_full_observations, seed, max_unroll_length);
              });
 
-  mod.add_type<open_spiel::checkers::CheckersState>("CheckersState", jlcxx::julia_base_type<open_spiel::State>())
-      .method("get_julia_state",
-              &open_spiel::checkers::CheckersState::GetJuliaState)
-      .method("set_julia_state",
-              &open_spiel::checkers::CheckersState::SetJuliaState)
-      .method("get_shaping_potential",
-              &open_spiel::checkers::CheckersState::GetShapingPotential);
 }  // NOLINT(readability/fn_size)
 

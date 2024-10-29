@@ -187,6 +187,8 @@ set (OPEN_SPIEL_CORE_FILES
   utils/usage_logging.cc
 )
 
+find_package(JlCxx REQUIRED)
+
 # We add the subdirectory here so open_spiel_core can #include absl.
 set(ABSL_PROPAGATE_CXX_STD ON)
 add_subdirectory (abseil-cpp)
@@ -196,6 +198,8 @@ include_directories (abseil-cpp)
 add_library(open_spiel_core OBJECT ${OPEN_SPIEL_CORE_FILES})
 target_include_directories (
   open_spiel_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} abseil-cpp)
+
+target_link_libraries (open_spiel_core PRIVATE JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 link_libraries(open_spiel_core
   absl::algorithm
   absl::flags
@@ -206,6 +210,8 @@ link_libraries(open_spiel_core
   absl::str_format
   absl::strings
   absl::time
+  JlCxx::cxxwrap_julia
+  JlCxx::cxxwrap_julia_stl
 )
 
 # Just the minimal base library: no games.

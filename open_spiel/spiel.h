@@ -27,6 +27,8 @@
 #include <utility>
 #include <vector>
 
+#include "jlcxx/jlcxx.hpp"
+
 #include "open_spiel/abseil-cpp/absl/random/bit_gen_ref.h"
 #include "open_spiel/abseil-cpp/absl/strings/str_join.h"
 #include "open_spiel/abseil-cpp/absl/synchronization/mutex.h"
@@ -713,6 +715,17 @@ class State {
   // belongs to. It returns 0 by default, so multi-population mean field games
   // should override this function.
   virtual int MeanFieldPopulation() const;
+
+  // Added for use with EffectiveHorizon.jl.
+  virtual int SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const {
+    SpielFatalError("SerializeToJulia unimplemented.");
+  }
+  virtual void DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) {
+    SpielFatalError("DeserializeFromJulia unimplemented.");
+  }
+  virtual float GetShapingPotential() const {
+    SpielFatalError("GetShapingPotential unimplemented.");
+  }
 
  protected:
   // See ApplyAction.

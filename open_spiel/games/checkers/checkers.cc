@@ -292,6 +292,32 @@ void CheckersState::SetJuliaState(jlcxx::ArrayRef<uint8_t> buffer) {
   }
 }
 
+int CheckersState::GetShapingPotential() const {
+  int potential = 0;
+  for (int row = 0; row < rows_; row++) {
+    for (int column = 0; column < columns_; column++) {
+      CellState state = BoardAt(row, column);
+      switch (state) {
+        case CellState::kWhite:
+          potential += 1;
+          break;
+        case CellState::kBlack:
+          potential -= 1;
+          break;
+        case CellState::kWhiteKing:
+          potential += 2;
+          break;
+        case CellState::kBlackKing:
+          potential -= 2;
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  return potential;
+}
+
 void CheckersState::SetCustomBoard(const std::string board_string) {
   SPIEL_CHECK_EQ(rows_ * columns_, board_string.length() - 1);
   current_player_ = board_string[0] - '0';

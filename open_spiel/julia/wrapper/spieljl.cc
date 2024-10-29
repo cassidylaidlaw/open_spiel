@@ -799,6 +799,8 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
       .method("get_julia_state",
               &open_spiel::checkers::CheckersState::GetJuliaState)
       .method("set_julia_state",
-              &open_spiel::checkers::CheckersState::SetJuliaState);
+              &open_spiel::checkers::CheckersState::SetJuliaState)
+      .method("get_shaping_potential",
+              &open_spiel::checkers::CheckersState::GetShapingPotential);
 }  // NOLINT(readability/fn_size)
 

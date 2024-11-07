@@ -23,6 +23,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "jlcxx/jlcxx.hpp"
+
 #include "open_spiel/games/go/go_board.h"
 #include "open_spiel/spiel.h"
 #include "open_spiel/spiel_utils.h"
@@ -96,6 +98,10 @@ class GoState : public State {
 
   const GoBoard& board() const { return board_; }
 
+  int SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const override;
+  void DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) override;
+  float GetShapingPotential() const override;
+
  protected:
   void DoApplyAction(Action action) override;
 
@@ -114,12 +120,13 @@ class GoState : public State {
     }
   };
   using RepetitionTable = std::unordered_set<uint64_t, PassthroughHash>;
-  RepetitionTable repetitions_;
+  // RepetitionTable repetitions_;
 
   const float komi_;
   const int handicap_;
   const int max_game_length_;
   GoColor to_play_;
+  int num_passes_;
   bool superko_;
 };
 

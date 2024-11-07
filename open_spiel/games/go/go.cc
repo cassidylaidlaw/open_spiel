@@ -155,10 +155,11 @@ std::string GoState::ToString() const {
 }
 
 bool GoState::IsTerminal() const {
-  if (history_.size() < 2) return false;
-  return (history_.size() >= max_game_length_) || superko_ ||
-         (history_[history_.size() - 1].action == board_.pass_action() &&
-          history_[history_.size() - 2].action == board_.pass_action());
+  // if (history_.size() < 2) return false;
+  // return (history_.size() >= max_game_length_) || superko_ ||
+  //        (history_[history_.size() - 1].action == board_.pass_action() &&
+  //         history_[history_.size() - 2].action == board_.pass_action());
+  return num_passes_ >= 2;
 }
 
 std::vector<double> GoState::Returns() const {
@@ -209,11 +210,17 @@ void GoState::DoApplyAction(Action action) {
       board_.PlayMove(board_.ActionToVirtualAction(action), to_play_));
   to_play_ = OppColor(to_play_);
 
-  bool was_inserted = repetitions_.insert(board_.HashValue()).second;
-  if (!was_inserted && action != board_.pass_action()) {
-    // We have encountered this position before.
-    superko_ = true;
+  if (action == board_.pass_action()) {
+    num_passes_++;
+  } else {
+    num_passes_ = 0;
   }
+
+  // bool was_inserted = repetitions_.insert(board_.HashValue()).second;
+  // if (!was_inserted && action != board_.pass_action()) {
+  //   // We have encountered this position before.
+  //   superko_ = true;
+  // }
 }
 
 void GoState::ResetBoard() {
@@ -227,9 +234,57 @@ void GoState::ResetBoard() {
     to_play_ = GoColor::kWhite;
   }
 
-  repetitions_.clear();
-  repetitions_.insert(board_.HashValue());
+  // repetitions_.clear();
+  // repetitions_.insert(board_.HashValue());
   superko_ = false;
+  num_passes_ = 0;
+}
+
+int GoState::SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const {
+  buffer[0] = '0' + static_cast<uint8_t>(to_play_);
+  buffer[1] = '0' + static_cast<uint8_t>(num_passes_);
+
+  int offset = 2;
+  for (VirtualPoint p : BoardPoints(board_.board_size())) {
+    GoColor point_color = board_.PointColor(p);
+    if (point_color == GoColor::kEmpty) {
+      buffer[offset] = '.';
+    } else if (point_color == GoColor::kBlack) {
+      buffer[offset] = 'X';
+    } else {
+      buffer[offset] = 'O';
+    }
+    offset++;
+  }
+
+  return offset;
+}
+
+void GoState::DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) {
+  to_play_ = static_cast<GoColor>(buffer[0] - '0');
+  num_passes_ = buffer[1] - '0';
+  int offset = 2;
+  board_.Clear();
+  for (VirtualPoint p : BoardPoints(board_.board_size())) {
+    char c = buffer[offset];
+    offset++;
+    if (c == '.') {
+      continue;
+    } else if (c == 'X') {
+      SPIEL_CHECK_TRUE(board_.PlayMove(p, GoColor::kBlack));
+    } else if (c == 'O') {
+      SPIEL_CHECK_TRUE(board_.PlayMove(p, GoColor::kWhite));
+    }
+  }
+
+  superko_ = false;
+  history_.clear();
+  move_number_ = 0;
+}
+
+float GoState::GetShapingPotential() const {
+  float black_score = TrompTaylorScore(board_, komi_, handicap_);
+  return black_score;
 }
 
 GoGame::GoGame(const GameParameters& params)

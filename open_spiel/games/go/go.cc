@@ -48,7 +48,8 @@ const GameType kGameType{
      // It's advised to only use shorter games to compute win-rates.
      // When not provided, it defaults to DefaultMaxGameLength(board_size)
      {"max_game_length",
-      GameParameter(GameParameter::Type::kInt, /*is_mandatory=*/false)}},
+      GameParameter(GameParameter::Type::kInt, /*is_mandatory=*/false)},
+     {"resign_threshold", GameParameter(std::numeric_limits<float>::infinity())}},
 };
 
 std::shared_ptr<const Game> Factory(const GameParameters& params) {
@@ -84,11 +85,12 @@ std::vector<VirtualPoint> HandicapStones(int num_handicap) {
 }  // namespace
 
 GoState::GoState(std::shared_ptr<const Game> game, int board_size, float komi,
-                 int handicap)
+                 int handicap, float resign_threshold)
     : State(std::move(game)),
       board_(board_size),
       komi_(komi),
       handicap_(handicap),
+      resign_threshold_(resign_threshold),
       max_game_length_(game_->MaxGameLength()),
       to_play_(GoColor::kBlack) {
   ResetBoard();
@@ -159,6 +161,12 @@ bool GoState::IsTerminal() const {
   // return (history_.size() >= max_game_length_) || superko_ ||
   //        (history_[history_.size() - 1].action == board_.pass_action() &&
   //         history_[history_.size() - 2].action == board_.pass_action());
+  if (to_play_ == GoColor::kBlack) {
+    float black_score = TrompTaylorScore(board_, komi_, handicap_);
+    if ((black_score >= resign_threshold_) || (black_score <= -resign_threshold_)) {
+      return true;
+    }
+  }
   return num_passes_ >= 2;
 }
 
@@ -292,6 +300,7 @@ GoGame::GoGame(const GameParameters& params)
       komi_(ParameterValue<double>("komi")),
       board_size_(ParameterValue<int>("board_size")),
       handicap_(ParameterValue<int>("handicap")),
+      resign_threshold_(ParameterValue<double>("resign_threshold")),
       max_game_length_(ParameterValue<int>(
           "max_game_length", DefaultMaxGameLength(board_size_))) {}
 

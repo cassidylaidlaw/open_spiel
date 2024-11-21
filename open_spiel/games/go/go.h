@@ -73,7 +73,7 @@ class GoState : public State {
  public:
   // Constructs a Go state for the empty board.
   GoState(std::shared_ptr<const Game> game, int board_size, float komi,
-          int handicap);
+          int handicap, float resign_threshold);
 
   Player CurrentPlayer() const override {
     return IsTerminal() ? kTerminalPlayerId : ColorToPlayer(to_play_);
@@ -124,6 +124,7 @@ class GoState : public State {
 
   const float komi_;
   const int handicap_;
+  const float resign_threshold_;
   const int max_game_length_;
   GoColor to_play_;
   int num_passes_;
@@ -141,7 +142,7 @@ class GoGame : public Game {
 
   std::unique_ptr<State> NewInitialState() const override {
     return std::unique_ptr<State>(
-        new GoState(shared_from_this(), board_size_, komi_, handicap_));
+        new GoState(shared_from_this(), board_size_, komi_, handicap_, resign_threshold_));
   }
 
   std::vector<int> ObservationTensorShape() const override {
@@ -168,6 +169,7 @@ class GoGame : public Game {
   const float komi_;
   const int board_size_;
   const int handicap_;
+  const float resign_threshold_;
   const int max_game_length_;
 };
 

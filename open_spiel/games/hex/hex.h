@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "jlcxx/jlcxx.hpp"
+
 #include "open_spiel/spiel.h"
 
 // The classic game of Hex: https://en.wikipedia.org/wiki/Hex_(board_game)
@@ -86,6 +88,9 @@ class HexState : public State {
   CellState BoardAt(int cell) const { return board_[cell]; }
   void ChangePlayer() { current_player_ = current_player_ == 0 ? 1 : 0; }
 
+  int SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const override;
+  void DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) override;
+
  protected:
   std::vector<CellState> board_;
   void DoApplyAction(Action move) override;
@@ -114,7 +119,7 @@ class HexGame : public Game {
   absl::optional<double> UtilitySum() const override { return 0; }
   double MaxUtility() const override { return 1; }
   std::vector<int> ObservationTensorShape() const override {
-    return {kCellStates, num_cols_, num_rows_};
+    return {kCellStates, num_rows_, num_cols_};
   }
   int MaxGameLength() const override { return num_cols_ * num_rows_; }
 

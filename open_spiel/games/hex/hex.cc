@@ -290,6 +290,28 @@ std::unique_ptr<State> HexState::Clone() const {
   return std::unique_ptr<State>(new HexState(*this));
 }
 
+int HexState::SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const {
+  buffer[0] = '0' + current_player_;
+  buffer[1] = '1' + result_black_perspective_;
+  for (int cell = 0; cell < board_.size(); ++cell) {
+    buffer[cell + 2] = '5' + static_cast<uint8_t>(board_[cell]);
+  }
+
+  return 2 + board_.size();
+}
+
+void HexState::DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) {
+  current_player_ = buffer[0] - '0';
+  SPIEL_CHECK_GE(current_player_, 0);
+  SPIEL_CHECK_LE(current_player_, 1);
+
+  result_black_perspective_ = buffer[1] - '1';
+
+  for (int cell = 0; cell < board_.size(); ++cell) {
+    board_[cell] = static_cast<CellState>(buffer[cell + 2] - '5');
+  }
+}
+
 HexGame::HexGame(const GameParameters& params)
     : Game(kGameType, params),
       // Use board_size as the default value of num_cols and num_rows

@@ -36,9 +36,6 @@ namespace connect_four {
 
 // Constants.
 inline constexpr int kNumPlayers = 2;
-inline constexpr int kRows = 6;
-inline constexpr int kCols = 7;
-inline constexpr int kNumCells = kRows * kCols;
 inline constexpr int kCellStates =
     1 + kNumPlayers;  // player 0, player 1, empty
 
@@ -60,7 +57,7 @@ enum class CellState {
 // State of an in-play game.
 class ConnectFourState : public State {
  public:
-  ConnectFourState(std::shared_ptr<const Game>);
+  ConnectFourState(std::shared_ptr<const Game>, int num_cols, int num_rows);
   explicit ConnectFourState(std::shared_ptr<const Game> game,
                             const std::string& str);
   ConnectFourState(const ConnectFourState& other) = default;
@@ -85,6 +82,9 @@ class ConnectFourState : public State {
     return Clone();
   }
 
+  int SerializeToJulia(jlcxx::ArrayRef<uint8_t> buffer) const override;
+  void DeserializeFromJulia(jlcxx::ArrayRef<uint8_t> buffer) override;
+
  protected:
   void DoApplyAction(Action move) override;
 
@@ -98,25 +98,31 @@ class ConnectFourState : public State {
   bool IsFull() const;         // Is the board full?
   Player current_player_ = 0;  // Player zero goes first
   Outcome outcome_ = Outcome::kUnknown;
-  std::array<CellState, kNumCells> board_;
+  const int num_cols_;
+  const int num_rows_;
+  std::vector<CellState> board_;
 };
 
 // Game object.
 class ConnectFourGame : public Game {
  public:
   explicit ConnectFourGame(const GameParameters& params);
-  int NumDistinctActions() const override { return kCols; }
+  int NumDistinctActions() const override { return num_cols_; }
   std::unique_ptr<State> NewInitialState() const override {
-    return std::unique_ptr<State>(new ConnectFourState(shared_from_this()));
+    return std::unique_ptr<State>(new ConnectFourState(shared_from_this(), num_cols_, num_rows_));
   }
   int NumPlayers() const override { return kNumPlayers; }
   double MinUtility() const override { return -1; }
   absl::optional<double> UtilitySum() const override { return 0; }
   double MaxUtility() const override { return 1; }
   std::vector<int> ObservationTensorShape() const override {
-    return {kCellStates, kRows, kCols};
+    return {kCellStates, num_rows_, num_cols_};
   }
-  int MaxGameLength() const override { return kNumCells; }
+  int MaxGameLength() const override { return num_rows_ * num_cols_; }
+
+ private:
+  const int num_cols_;
+  const int num_rows_;
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const CellState& state) {
